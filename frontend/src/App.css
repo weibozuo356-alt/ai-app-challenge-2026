@@ -1,0 +1,163 @@
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 36px 0 60px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.header p {
+  margin: 0 0 6px;
+  color: #6d5dfc;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 42px;
+  line-height: 1.1;
+}
+
+.header div > span {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+}
+
+.header > span {
+  padding: 9px 14px;
+  border: 1px solid #d9d4ff;
+  border-radius: 999px;
+  color: #5948dd;
+  background: #eeebff;
+  font-weight: 700;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.panel {
+  padding: 26px;
+  border: 1px solid #e3e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 35px rgba(37, 48, 74, 0.07);
+}
+
+.panel h2 {
+  margin: 0 0 22px;
+  font-size: 22px;
+}
+
+label {
+  display: block;
+  margin: 18px 0 7px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #cfd7e5;
+  border-radius: 10px;
+  color: #172033;
+  background: #fbfcfe;
+  outline: none;
+}
+
+select {
+  padding: 10px 12px;
+}
+
+textarea {
+  padding: 13px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+select:focus,
+textarea:focus {
+  border-color: #6d5dfc;
+  box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.12);
+}
+
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid #d8deea;
+  border-radius: 10px;
+  color: #334155;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  border-color: #6d5dfc;
+  color: #5948dd;
+  background: #f7f5ff;
+}
+
+.workspace .panel:first-child button {
+  margin-top: 22px;
+  border-color: #6d5dfc;
+  color: #ffffff;
+  background: #6d5dfc;
+}
+
+.workspace .panel:first-child button:hover {
+  background: #5948dd;
+}
+
+.hint-box {
+  min-height: 210px;
+  padding: 20px;
+  border: 1px dashed #b8adff;
+  border-radius: 14px;
+  color: #4b5563;
+  background: #f8f7ff;
+}
+
+.hint-box + p {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 800px) {
+  .app {
+    width: min(100% - 24px, 620px);
+    padding-top: 24px;
+  }
+
+  .header {
+    align-items: flex-start;
+  }
+
+  .header h1 {
+    font-size: 34px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
