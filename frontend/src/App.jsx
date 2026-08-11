@@ -1,6 +1,19 @@
+import { useState } from 'react'
 import './App.css'
 
 function App() {
+  const [coachMessage, setCoachMessage] = useState('提交代码后，我会从第一级提示开始引导你。')
+  const [code, setCode] = useState('')
+  function startDebugging() {
+  if (code.trim() === '') {
+    setCoachMessage('请先在左侧粘贴需要调试的 Python 代码。')
+    return
+  }
+
+  setCoachMessage(
+    '第一级提示：先查看报错信息的最后一行，它通常会告诉你错误类型。'
+  )
+}
   return (
     <main className="app">
       <header className="header">
@@ -24,10 +37,12 @@ function App() {
 
           <label htmlFor="code">代码</label>
           <textarea
-            id="code"
-            rows="12"
-            placeholder="在这里粘贴你的 Python 代码……"
-          />
+  id="code"
+  rows="12"
+  placeholder="在这里粘贴你的 Python 代码……"
+  value={code}
+  onChange={(event) => setCode(event.target.value)}
+/>
 
           <label htmlFor="expected">预期结果</label>
           <textarea
@@ -43,14 +58,16 @@ function App() {
             placeholder="粘贴报错信息；没有报错可以留空"
           />
 
-          <button type="button">开始侦查 Bug</button>
+         <button type="button" onClick={startDebugging}>
+  开始侦查 Bug
+</button>
         </article>
 
         <article className="panel">
           <h2>AI Debug 教练</h2>
 
           <div className="hint-box">
-            <p>提交代码后，我会从第一级提示开始引导你。</p>
+            <p>{coachMessage}</p>
           </div>
 
           <p>当前提示等级：第 1 级</p>
