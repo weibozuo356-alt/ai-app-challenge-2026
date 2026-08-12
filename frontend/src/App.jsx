@@ -1,83 +1,102 @@
-import { useState } from 'react'
-import './App.css'
-
-const hints = [
-  '第一级提示：先查看报错信息的最后一行，它通常会告诉你错误类型。',
-  '第二级提示：找到报错中出现的行号，重点检查这一行以及它的上一行。',
-  '第三级提示：检查变量类型、括号、缩进和循环边界是否符合你的预期。',
-  '第四级提示：尝试用一句话描述这段代码应该按什么顺序执行，再对照实际代码。',
-]
+import { useState } from "react";
+import "./App.css";
 
 function App() {
-  const [code, setCode] = useState('')
-  const [hintLevel, setHintLevel] = useState(0)
-  const [isSolved, setIsSolved] = useState(false)
+  const [code, setCode] = useState("");
+  const [expectedResult, setExpectedResult] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [isSolved, setIsSolved] = useState(false);
   const [coachMessage, setCoachMessage] = useState(
-    '提交代码后，我会从第一级提示开始引导你。'
-  )
+    "提交代码后，我会从第一级提示开始引导你。",
+  );
 
   function hasCode() {
-    if (code.trim() === '') {
-      setCoachMessage('请先在左侧粘贴需要调试的 Python 代码。')
-      return false
+    if (code.trim() === "") {
+      setCoachMessage("请先在左侧粘贴需要调试的 Python 代码。");
+      return false;
     }
 
-    return true
+    return true;
   }
 
-  function startDebugging() {
-    if (!hasCode()) {
-      return
-    }
+  async function requestHint(level) {
+    setIsLoading(true);
+    setCoachMessage("正在分析你的代码……");
 
-    setHintLevel(1)
-    setIsSolved(false)
-    setCoachMessage(hints[0])
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/debug", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: code,
+          expected_result: expectedResult,
+          error_message: errorMessage,
+          hint_level: level,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("后端返回错误");
+      }
+
+      const data = await response.json();
+
+      setHintLevel(data.hint_level);
+      setCoachMessage(data.hint);
+    } catch {
+      setHintLevel(0);
+      setCoachMessage("连接后端失败，请确认前端和后端都在运行。");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function showNextHint() {
+  async function startDebugging() {
     if (!hasCode()) {
-      return
+      return;
     }
 
-    if (hintLevel === 0) {
-      startDebugging()
-      return
+    setIsSolved(false);
+    await requestHint(1);
+  }
+
+  async function showNextHint() {
+    if (!hasCode()) {
+      return;
     }
 
-    if (hintLevel >= hints.length) {
+    if (hintLevel >= 4) {
       setCoachMessage(
-        '你已经看完全部引导提示。请先尝试修改代码，实在无法解决时再查看答案。'
-      )
-      return
+        "你已经看完四级引导提示，请先尝试修改代码，实在无法解决时再查看答案。",
+      );
+      return;
     }
 
-    const nextLevel = hintLevel + 1
-
-    setHintLevel(nextLevel)
-    setCoachMessage(hints[nextLevel - 1])
+    const nextLevel = hintLevel === 0 ? 1 : hintLevel + 1;
+    await requestHint(nextLevel);
   }
 
-  function showAnswer() {
+  async function showAnswer() {
     if (!hasCode()) {
-      return
+      return;
     }
 
-    setHintLevel(5)
-    setCoachMessage(
-      '第五级：进入答案模式。当前原型尚未接入 AI，后续这里会展示错误原因和修改建议。'
-    )
+    await requestHint(5);
   }
 
   function markAsSolved() {
     if (!hasCode()) {
-      return
+      return;
     }
 
-    setIsSolved(true)
+    setIsSolved(true);
     setCoachMessage(
-      '太好了！请用自己的话解释：错误为什么发生，以及下次如何避免？'
-    )
+      "太好了！请用自己的话解释：错误为什么发生，以及下次如何避免？",
+    );
   }
 
   return (
@@ -115,6 +134,8 @@ function App() {
             id="expected"
             rows="3"
             placeholder="你希望代码产生什么结果？"
+            value={expectedResult}
+            onChange={(event) => setExpectedResult(event.target.value)}
           />
 
           <label htmlFor="error">报错信息</label>
@@ -122,10 +143,12 @@ function App() {
             id="error"
             rows="3"
             placeholder="粘贴报错信息；没有报错可以留空"
+            value={errorMessage}
+            onChange={(event) => setErrorMessage(event.target.value)}
           />
 
-          <button type="button" onClick={startDebugging}>
-            开始侦查 Bug
+          <button type="button" onClick={startDebugging} disabled={isLoading}>
+            {isLoading ? "正在分析……" : "开始侦查 Bug"}
           </button>
         </article>
 
@@ -138,18 +161,18 @@ function App() {
 
           <p>
             当前提示等级：
-            {hintLevel === 0 ? '尚未开始' : `第 ${hintLevel} 级`}
+            {hintLevel === 0 ? "尚未开始" : `第 ${hintLevel} 级`}
           </p>
 
           <button type="button" onClick={markAsSolved}>
             我找到问题了
           </button>
 
-          <button type="button" onClick={showNextHint}>
+          <button type="button" onClick={showNextHint} disabled={isLoading}>
             再给我一个提示
           </button>
 
-          <button type="button" onClick={showAnswer}>
+          <button type="button" onClick={showAnswer} disabled={isLoading}>
             实在不会，查看答案
           </button>
         </article>
@@ -159,23 +182,23 @@ function App() {
         <h2>本次学习记录</h2>
         <p>
           错误类型：
-          {isSolved ? '等待用户复盘' : '等待完成调试'}
+          {isSolved ? "等待用户复盘" : "等待完成调试"}
         </p>
         <p>
           涉及知识点：
-          {isSolved ? '等待用户复盘' : '等待完成调试'}
+          {isSolved ? "等待用户复盘" : "等待完成调试"}
         </p>
         <p>
           我的错误原因：
-          {isSolved ? '请用自己的话总结' : '等待完成调试'}
+          {isSolved ? "请用自己的话总结" : "等待完成调试"}
         </p>
         <p>
           下次如何避免：
-          {isSolved ? '请记录一条改进方法' : '等待完成调试'}
+          {isSolved ? "请记录一条改进方法" : "等待完成调试"}
         </p>
       </section>
     </main>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -31,6 +31,10 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 - [x] 实现代码输入检查
 - [x] 实现五级提示交互流程
 - [x] 实现调试完成与学习复盘状态
+- [x] 搭建 FastAPI 后端服务
+- [x] 实现前端与后端的数据通信
+- [x] 由后端返回五级模拟提示
+- [x] 增加后端输入长度与提示等级校验
 - [x] 通过正式构建检查
 - [ ] 接入真实 AI 分析
 - [ ] 根据代码动态生成提示
@@ -51,9 +55,31 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 - JavaScript
 - Vite
 - CSS
+- Python
+- FastAPI
+- Pydantic
 - Git 与 GitHub
 
 ## 本地运行
+
+### 启动后端
+
+创建并安装后端环境：
+
+```bash
+python -m venv backend/.venv
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+```
+
+启动 FastAPI：
+
+```bash
+backend/.venv/Scripts/python.exe -m fastapi dev backend/main.py
+```
+
+后端默认运行在 `http://127.0.0.1:8000`。
+
+### 启动前端
 
 进入前端目录：
 
@@ -84,7 +110,9 @@ npm run build
 
 ## 当前说明
 
-当前版本是可交互的前端原型，提示内容暂时由本地固定数据提供。下一阶段将接入大模型 API，根据用户提交的代码、报错信息和预期结果生成个性化提示。
+当前版本已经完成 React 前端与 FastAPI 后端的通信。用户提交的代码、预期结果、报错信息和提示等级会发送到后端，后端完成输入校验后返回对应的模拟提示。
+
+当前后端不会执行用户代码，提示内容暂时由后端固定规则提供。下一阶段将接入大模型 API，根据用户提交的信息生成个性化提示。
 
 ## 产品原则
 
@@ -93,4 +121,4 @@ AI 的目标不是替用户修好代码，而是帮助用户学会自己修复�
 ## 开发日志
 
 - [Day 1：完成产品原型与分级提示流程](docs/dev-log/2026-08-11.md)
-- [Day 2：理解前端技术栈及其协作关系](docs/dev-log/2026-08-12.md)
+- [Day 2：理解技术栈并跑通前后端通信](docs/dev-log/2026-08-12.md)
