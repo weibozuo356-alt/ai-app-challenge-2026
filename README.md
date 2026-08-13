@@ -144,5 +144,4 @@ AI 的目标不是替用户修好代码，而是帮助用户学会自己修复�
 
 - [Day 1：完成产品原型与分级提示流程](docs/dev-log/2026-08-11.md)
 - [Day 2：理解技术栈并跑通前后端通信](docs/dev-log/2026-08-12.md)
-- [Day 3：接入 DeepSeek，实现真实 AI 分级调试](docs/dev-log/2026-08-13.md)
-- [Day 4：增加自动化测试与本地学习记录](docs/dev-log/2026-08-13-day-4.md)
+- [Day 3：接入 DeepSeek，完成自动化测试与学习记录闭环](docs/dev-log/2026-08-13.md)
