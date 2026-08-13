@@ -36,8 +36,9 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 - [x] 由后端返回五级模拟提示
 - [x] 增加后端输入长度与提示等级校验
 - [x] 通过正式构建检查
-- [ ] 接入真实 AI 分析
-- [ ] 根据代码动态生成提示
+- [x] 接入 DeepSeek 真实 AI 分析
+- [x] 根据代码和提示等级动态生成提示
+- [x] 增加 AI 请求超时与安全错误处理
 - [ ] 保存用户学习记录
 - [ ] 部署在线演示版本
 
@@ -59,6 +60,9 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 - FastAPI
 - Pydantic
 - Git 与 GitHub
+- DeepSeek API
+- OpenAI Python SDK
+- python-dotenv
 
 ## 本地运行
 
@@ -71,6 +75,14 @@ python -m venv backend/.venv
 backend/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
 ```
 
+在 `backend` 目录中根据 `.env.example` 创建 `.env`，并填写自己的 DeepSeek API 密钥：
+
+```env
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-flash
+```
+
 启动 FastAPI：
 
 ```bash
@@ -78,6 +90,7 @@ backend/.venv/Scripts/python.exe -m fastapi dev backend/main.py
 ```
 
 后端默认运行在 `http://127.0.0.1:8000`。
+
 
 ### 启动前端
 
@@ -110,9 +123,11 @@ npm run build
 
 ## 当前说明
 
-当前版本已经完成 React 前端与 FastAPI 后端的通信。用户提交的代码、预期结果、报错信息和提示等级会发送到后端，后端完成输入校验后返回对应的模拟提示。
+当前版本已经完成 React 前端、FastAPI 后端与 DeepSeek API 的通信。用户提交代码、预期结果、报错信息和提示等级后，后端会调用 DeepSeek 动态生成对应等级的调试提示。
 
-当前后端不会执行用户代码，提示内容暂时由后端固定规则提供。下一阶段将接入大模型 API，根据用户提交的信息生成个性化提示。
+BugMentor 使用五级提示控制答案揭示的程度：前四级逐步引导用户观察、定位和理解问题，第五级才提供完整错误原因、修改方案和避免方法。
+
+用户代码只作为文本交给模型分析，不会在后端直接执行。DeepSeek API 密钥保存在本地 `.env` 文件中，不会提交到 GitHub。
 
 ## 产品原则
 
@@ -122,3 +137,4 @@ AI 的目标不是替用户修好代码，而是帮助用户学会自己修复�
 
 - [Day 1：完成产品原型与分级提示流程](docs/dev-log/2026-08-11.md)
 - [Day 2：理解技术栈并跑通前后端通信](docs/dev-log/2026-08-12.md)
+- [Day 3：接入 DeepSeek，实现真实 AI 分级调试](docs/dev-log/2026-08-13.md)
