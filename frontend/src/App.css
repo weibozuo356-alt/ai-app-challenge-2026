@@ -74,6 +74,7 @@ label {
 }
 
 select,
+input,
 textarea {
   width: 100%;
   border: 1px solid #cfd7e5;
@@ -87,6 +88,10 @@ select {
   padding: 10px 12px;
 }
 
+input {
+  padding: 10px 12px;
+}
+
 textarea {
   padding: 13px;
   resize: vertical;
@@ -94,6 +99,7 @@ textarea {
 }
 
 select:focus,
+input:focus,
 textarea:focus {
   border-color: #6d5dfc;
   box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.12);
@@ -141,6 +147,40 @@ button:hover {
   color: #64748b;
   font-size: 14px;
   text-align: center;
+}
+
+.history-panel {
+  margin-top: 24px;
+}
+
+.record-list {
+  display: grid;
+  gap: 14px;
+}
+
+.record-card {
+  padding: 18px;
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.record-card p {
+  margin: 10px 0 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.record-header time {
+  color: #64748b;
+  font-size: 13px;
 }
 
 @media (max-width: 800px) {
