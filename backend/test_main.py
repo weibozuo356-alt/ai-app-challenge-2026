@@ -37,6 +37,34 @@ class DebugApiTests(unittest.TestCase):
         self.assertEqual(response.json()["mode"], "deepseek")
         mock_generate_hint.assert_called_once()
 
+    @patch("main.generate_debug_hint", return_value="你的判断方向正确，请继续检查索引范围。")
+    def test_student_response_is_forwarded_to_ai_coach(
+        self,
+        mock_generate_hint,
+    ):
+        response = client.post(
+            "/api/debug",
+            json={
+                "code": "numbers = [10, 20, 30]\nprint(numbers[3])",
+                "expected_result": "输出30",
+                "error_message": "IndexError: list index out of range",
+                "hint_level": 2,
+                "student_response": "我认为索引 3 超出了列表范围。",
+                "previous_hint": "请观察报错信息和列表索引。",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["interaction"], "follow_up")
+        mock_generate_hint.assert_called_once_with(
+            code="numbers = [10, 20, 30]\nprint(numbers[3])",
+            expected_result="输出30",
+            error_message="IndexError: list index out of range",
+            hint_level=2,
+            student_response="我认为索引 3 超出了列表范围。",
+            previous_hint="请观察报错信息和列表索引。",
+        )
+
     @patch(
         "main.generate_debug_hint",
         side_effect=RuntimeError("内部模型错误"),
@@ -84,6 +112,25 @@ class DebugApiTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 422)
+
+    @patch("main.generate_debug_hint")
+    def test_oversized_student_response_is_rejected(
+        self,
+        mock_generate_hint,
+    ):
+        response = client.post(
+            "/api/debug",
+            json={
+                "code": "print(1)",
+                "expected_result": "",
+                "error_message": "",
+                "hint_level": 1,
+                "student_response": "a" * 2001,
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        mock_generate_hint.assert_not_called()
 
 
 if __name__ == "__main__":

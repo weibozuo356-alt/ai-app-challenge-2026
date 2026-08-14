@@ -39,6 +39,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [hintLevel, setHintLevel] = useState(0);
   const [isSolved, setIsSolved] = useState(false);
+  const [studentResponse, setStudentResponse] = useState("");
   const [coachMessage, setCoachMessage] = useState(
     "提交代码后，我会从第一级提示开始引导你。",
   );
@@ -61,9 +62,15 @@ function App() {
     return true;
   }
 
-  async function requestHint(level) {
+  async function requestHint(level, responseText = "") {
+    const previousHint = coachMessage;
+
     setIsLoading(true);
-    setCoachMessage("正在分析你的代码……");
+    setCoachMessage(
+      responseText
+        ? "正在判断你的思路……"
+        : "正在分析你的代码……",
+    );
 
     try {
       const response = await fetch("http://127.0.0.1:8000/api/debug", {
@@ -76,6 +83,8 @@ function App() {
           expected_result: expectedResult,
           error_message: errorMessage,
           hint_level: level,
+          student_response: responseText,
+          previous_hint: responseText ? previousHint : "",
         }),
       });
 
@@ -87,9 +96,11 @@ function App() {
 
       setHintLevel(data.hint_level);
       setCoachMessage(data.hint);
-    } catch (error) {
-      setHintLevel(0);
 
+      if (responseText) {
+        setStudentResponse("");
+      }
+    } catch (error) {
       if (error instanceof TypeError) {
         setCoachMessage("无法连接后端，请确认后端正在运行。");
       } else {
@@ -106,8 +117,29 @@ function App() {
     }
 
     setIsSolved(false);
+    setStudentResponse("");
     setSaveMessage("");
     await requestHint(1);
+  }
+
+  async function submitStudentResponse() {
+    if (!hasCode()) {
+      return;
+    }
+
+    const responseText = studentResponse.trim();
+
+    if (hintLevel === 0) {
+      setCoachMessage("请先点击“开始侦查 Bug”获得第一条提示。");
+      return;
+    }
+
+    if (responseText === "") {
+      setCoachMessage("请先写下你对问题的判断，再提交给 AI 教练。");
+      return;
+    }
+
+    await requestHint(hintLevel, responseText);
   }
 
   async function showNextHint() {
@@ -229,7 +261,11 @@ function App() {
           />
 
           <button type="button" onClick={startDebugging} disabled={isLoading}>
-            {isLoading ? "正在分析……" : "开始侦查 Bug"}
+            {isLoading
+              ? "正在分析……"
+              : hintLevel > 0
+                ? "重新检查修改后的代码"
+                : "开始侦查 Bug"}
           </button>
         </article>
 
@@ -245,15 +281,47 @@ function App() {
             {hintLevel === 0 ? "尚未开始" : `第 ${hintLevel} 级`}
           </p>
 
-          <button type="button" onClick={markAsSolved}>
+          <div className="student-response-box">
+            <label htmlFor="student-response">我的判断</label>
+            <textarea
+              id="student-response"
+              rows="4"
+              maxLength="2000"
+              placeholder="例如：我认为索引超出了列表范围，因为……"
+              value={studentResponse}
+              onChange={(event) => setStudentResponse(event.target.value)}
+              disabled={hintLevel === 0 || isLoading || isSolved}
+            />
+            <button
+              type="button"
+              onClick={submitStudentResponse}
+              disabled={hintLevel === 0 || isLoading || isSolved}
+            >
+              提交我的判断
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={markAsSolved}
+            disabled={hintLevel === 0 || isLoading || isSolved}
+          >
             我找到问题了
           </button>
 
-          <button type="button" onClick={showNextHint} disabled={isLoading}>
+          <button
+            type="button"
+            onClick={showNextHint}
+            disabled={hintLevel === 0 || isLoading || isSolved}
+          >
             再给我一个提示
           </button>
 
-          <button type="button" onClick={showAnswer} disabled={isLoading}>
+          <button
+            type="button"
+            onClick={showAnswer}
+            disabled={hintLevel === 0 || isLoading || isSolved}
+          >
             实在不会，查看答案
           </button>
         </article>

@@ -123,6 +123,18 @@ button:hover {
   background: #f7f5ff;
 }
 
+button:disabled {
+  color: #94a3b8;
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  border-color: #d8deea;
+  color: #94a3b8;
+  background: #f1f5f9;
+}
+
 .workspace .panel:first-child button {
   margin-top: 22px;
   border-color: #6d5dfc;
@@ -147,6 +159,26 @@ button:hover {
   color: #64748b;
   font-size: 14px;
   text-align: center;
+}
+
+.student-response-box {
+  margin: 20px 0 8px;
+  padding-top: 4px;
+  border-top: 1px solid #edf0f5;
+}
+
+.student-response-box label {
+  margin-top: 16px;
+}
+
+.student-response-box button {
+  border-color: #6d5dfc;
+  color: #ffffff;
+  background: #6d5dfc;
+}
+
+.student-response-box button:hover:not(:disabled) {
+  background: #5948dd;
 }
 
 .history-panel {

@@ -20,6 +20,8 @@ class DebugRequest(BaseModel):
     expected_result: str = Field(default="", max_length=2000)
     error_message: str = Field(default="", max_length=5000)
     hint_level: int = Field(default=1, ge=1, le=5)
+    student_response: str = Field(default="", max_length=2000)
+    previous_hint: str = Field(default="", max_length=2000)
 
 
 @app.get("/")
@@ -35,6 +37,8 @@ def debug_code(request: DebugRequest):
             expected_result=request.expected_result,
             error_message=request.error_message,
             hint_level=request.hint_level,
+            student_response=request.student_response,
+            previous_hint=request.previous_hint,
         )
     except Exception:
         raise HTTPException(
@@ -45,5 +49,8 @@ def debug_code(request: DebugRequest):
     return {
         "hint_level": request.hint_level,
         "hint": hint,
+        "interaction": (
+            "follow_up" if request.student_response.strip() else "hint"
+        ),
         "mode": "deepseek",
     }
