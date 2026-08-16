@@ -3,6 +3,9 @@ import "./App.css";
 
 const STORAGE_KEY = "bugmentor-learning-records";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 function isValidLearningRecord(record) {
   return (
     record !== null &&
@@ -16,6 +19,16 @@ function isValidLearningRecord(record) {
   );
 }
 
+function ensureRecordId(record) {
+  const hasValidId =
+    typeof record.id === "string" && record.id.trim() !== "";
+
+  return {
+    ...record,
+    id: hasValidId ? record.id : `legacy-${record.savedAt}`,
+  };
+}
+
 function loadLearningRecords() {
   try {
     const savedRecords = JSON.parse(
@@ -26,7 +39,10 @@ function loadLearningRecords() {
       return [];
     }
 
-    return savedRecords.filter(isValidLearningRecord).slice(-20);
+    return savedRecords
+      .filter(isValidLearningRecord)
+      .map(ensureRecordId)
+      .slice(-20);
   } catch {
     return [];
   }
@@ -73,7 +89,7 @@ function App() {
     );
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/debug", {
+      const response = await fetch(`${API_BASE_URL}/api/debug`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -191,6 +207,7 @@ function App() {
     }
 
     const newRecord = {
+      id: crypto.randomUUID(),
       errorType: errorType.trim(),
       knowledgePoint: knowledgePoint.trim(),
       errorCause: errorCause.trim(),
@@ -209,6 +226,51 @@ function App() {
       );
     } catch {
       setSaveMessage("保存失败，请检查浏览器是否允许本地存储。");
+    }
+  }
+
+  function deleteLearningRecord(recordId) {
+    const confirmed = window.confirm(
+      "确定要删除这条学习记录吗？删除后无法恢复。",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const updatedRecords = learningRecords.filter(
+      (record) => record.id !== recordId,
+    );
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
+      setLearningRecords(updatedRecords);
+      setSaveMessage("学习记录已删除。");
+    } catch {
+      setSaveMessage("删除失败，请检查浏览器是否允许本地存储。");
+    }
+  }
+
+  function clearLearningRecords() {
+    if (learningRecords.length === 0) {
+      setSaveMessage("当前没有可以清空的学习记录。");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `确定要清空全部 ${learningRecords.length} 条学习记录吗？此操作无法恢复。`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      setLearningRecords([]);
+      setSaveMessage("全部学习记录已清空。");
+    } catch {
+      setSaveMessage("清空失败，请检查浏览器是否允许本地存储。");
     }
   }
 
@@ -382,14 +444,25 @@ function App() {
       </section>
 
       <section className="panel history-panel">
-        <h2>历史学习记录</h2>
+        <div className="history-header">
+          <h2>历史学习记录</h2>
+
+          <button
+            className="clear-records-button"
+            type="button"
+            onClick={clearLearningRecords}
+            disabled={learningRecords.length === 0}
+          >
+            清空全部记录
+          </button>
+        </div>
 
         {learningRecords.length === 0 ? (
           <p>还没有保存过学习记录。</p>
         ) : (
           <div className="record-list">
             {[...learningRecords].reverse().map((record) => (
-              <article className="record-card" key={record.savedAt}>
+              <article className="record-card" key={record.id}>
                 <div className="record-header">
                   <strong>{record.errorType}</strong>
                   <time>
@@ -400,6 +473,13 @@ function App() {
                 <p>知识点：{record.knowledgePoint}</p>
                 <p>错误原因：{record.errorCause}</p>
                 <p>避免方法：{record.prevention}</p>
+                <button
+                  className="delete-record-button"
+                  type="button"
+                  onClick={() => deleteLearningRecord(record.id)}
+                >
+                  删除这条记录
+                </button>
               </article>
             ))}
           </div>

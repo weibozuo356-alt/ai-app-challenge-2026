@@ -185,6 +185,32 @@ button:disabled:hover {
   margin-top: 24px;
 }
 
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.history-header h2 {
+  margin: 0;
+}
+
+.clear-records-button {
+  width: auto;
+  margin: 0;
+  padding: 8px 12px;
+  color: #b42318;
+  border-color: #f1b8b2;
+  background: #fff7f6;
+}
+
+.clear-records-button:hover:not(:disabled) {
+  color: #912018;
+  border-color: #e58f86;
+  background: #ffefed;
+}
 .record-list {
   display: grid;
   gap: 14px;
@@ -195,6 +221,20 @@ button:disabled:hover {
   border: 1px solid #e3e8f0;
   border-radius: 12px;
   background: #fbfcfe;
+}
+
+.delete-record-button {
+  width: auto;
+  padding: 8px 12px;
+  color: #b42318;
+  border-color: #f1b8b2;
+  background: #fff7f6;
+}
+
+.delete-record-button:hover {
+  color: #912018;
+  border-color: #e58f86;
+  background: #ffefed;
 }
 
 .record-card p {
