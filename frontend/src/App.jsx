@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import { normalizeCode, validateIndexError } from "./validator";
 
 const STORAGE_KEY = "bugmentor-learning-records";
 
@@ -20,8 +21,7 @@ function isValidLearningRecord(record) {
 }
 
 function ensureRecordId(record) {
-  const hasValidId =
-    typeof record.id === "string" && record.id.trim() !== "";
+  const hasValidId = typeof record.id === "string" && record.id.trim() !== "";
 
   return {
     ...record,
@@ -31,9 +31,7 @@ function ensureRecordId(record) {
 
 function loadLearningRecords() {
   try {
-    const savedRecords = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) || "[]",
-    );
+    const savedRecords = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
     if (!Array.isArray(savedRecords)) {
       return [];
@@ -50,6 +48,12 @@ function loadLearningRecords() {
 
 function App() {
   const [code, setCode] = useState("");
+  const [originalCode, setOriginalCode] = useState("");
+  const [verifiedCode, setVerifiedCode] = useState("");
+  const [verification, setVerification] = useState({
+    status: "none",
+    message: "",
+  });
   const [expectedResult, setExpectedResult] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -66,9 +70,24 @@ function App() {
   const [prevention, setPrevention] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
 
-  const [learningRecords, setLearningRecords] =
-    useState(loadLearningRecords);
+  const [learningRecords, setLearningRecords] = useState(loadLearningRecords);
 
+  function handleCodeChange(nextCode) {
+    setCode(nextCode);
+
+    const hasBeenVerified = verifiedCode !== "";
+    const differsFromVerifiedCode =
+      normalizeCode(nextCode) !== normalizeCode(verifiedCode);
+
+    if (hasBeenVerified && differsFromVerifiedCode) {
+      setVerification({
+        status: "none",
+        message: "代码已修改，等待重新验证。",
+      });
+      setIsSolved(false);
+      setSaveMessage("");
+    }
+  }
   function hasCode() {
     if (code.trim() === "") {
       setCoachMessage("请先在左侧粘贴需要调试的 Python 代码。");
@@ -82,11 +101,7 @@ function App() {
     const previousHint = coachMessage;
 
     setIsLoading(true);
-    setCoachMessage(
-      responseText
-        ? "正在判断你的思路……"
-        : "正在分析你的代码……",
-    );
+    setCoachMessage(responseText ? "正在判断你的思路……" : "正在分析你的代码……");
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/debug`, {
@@ -132,10 +147,33 @@ function App() {
       return;
     }
 
+    setOriginalCode(code);
+    setVerifiedCode("");
+    setVerification({
+      status: "none",
+      message: "",
+    });
     setIsSolved(false);
     setStudentResponse("");
     setSaveMessage("");
+
     await requestHint(1);
+  }
+  function verifyModifiedCode() {
+    if (originalCode === "") {
+      setVerification({
+        status: "inconclusive",
+        message: "请先开始调试，再根据提示修改代码。",
+      });
+      return;
+    }
+
+    const result = validateIndexError(originalCode, code, errorMessage);
+
+    setVerifiedCode(code);
+    setVerification(result);
+    setIsSolved(result.status === "passed");
+    setSaveMessage("");
   }
 
   async function submitStudentResponse() {
@@ -194,12 +232,7 @@ function App() {
   }
 
   function saveLearningRecord() {
-    const recordFields = [
-      errorType,
-      knowledgePoint,
-      errorCause,
-      prevention,
-    ];
+    const recordFields = [errorType, knowledgePoint, errorCause, prevention];
 
     if (recordFields.some((field) => field.trim() === "")) {
       setSaveMessage("请填写完整的学习复盘后再保存。");
@@ -301,7 +334,7 @@ function App() {
             rows="12"
             placeholder="在这里粘贴你的 Python 代码……"
             value={code}
-            onChange={(event) => setCode(event.target.value)}
+            onChange={(event) => handleCodeChange(event.target.value)}
           />
 
           <label htmlFor="expected">预期结果</label>
@@ -322,13 +355,50 @@ function App() {
             onChange={(event) => setErrorMessage(event.target.value)}
           />
 
-          <button type="button" onClick={startDebugging} disabled={isLoading}>
+          <button
+            type="button"
+            onClick={startDebugging}
+            disabled={isLoading}
+          >
             {isLoading
               ? "正在分析……"
               : hintLevel > 0
-                ? "重新检查修改后的代码"
+                ? "重新提交为新问题"
                 : "开始侦查 Bug"}
           </button>
+
+          {hintLevel > 0 && (
+            <button
+              className="verify-button"
+              type="button"
+              onClick={verifyModifiedCode}
+              disabled={isLoading}
+            >
+              重新验证修改后的代码
+            </button>
+          )}
+
+          {verification.message && (
+            <div
+              className={`verification-card verification-${verification.status}`}
+            >
+              <strong>
+                {verification.status === "passed"
+                  ? "验证通过"
+                  : verification.status === "failed"
+                    ? "验证未通过"
+                    : verification.status === "inconclusive"
+                      ? "暂时无法判断"
+                      : "等待重新验证"}
+              </strong>
+
+              <p>{verification.message}</p>
+
+              <small>
+                当前结果来自预设规则模拟，代码未在服务器执行。
+              </small>
+            </div>
+          )}
         </article>
 
         <article className="panel">
@@ -432,11 +502,7 @@ function App() {
           disabled={!isSolved}
         />
 
-        <button
-          type="button"
-          onClick={saveLearningRecord}
-          disabled={!isSolved}
-        >
+        <button type="button" onClick={saveLearningRecord} disabled={!isSolved}>
           保存学习记录
         </button>
         <p>已保存学习记录：{learningRecords.length} 条</p>

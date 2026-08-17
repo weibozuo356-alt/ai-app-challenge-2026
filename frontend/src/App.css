@@ -181,6 +181,59 @@ button:disabled:hover {
   background: #5948dd;
 }
 
+.verify-button {
+  color: #4338ca;
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.verify-button:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #4f46e5;
+  background: #4f46e5;
+}
+
+.verification-card {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid;
+  border-radius: 12px;
+}
+
+.verification-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 17px;
+}
+
+.verification-card p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+
+.verification-card small {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.verification-passed {
+  color: #166534;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.verification-failed,
+.verification-inconclusive {
+  color: #92400e;
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.verification-none {
+  color: #1e40af;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
 .history-panel {
   margin-top: 24px;
 }
