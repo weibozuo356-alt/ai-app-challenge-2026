@@ -84,6 +84,29 @@ class DebugApiTests(unittest.TestCase):
             "health-test-request",
         )
 
+    def test_security_headers_are_present(self):
+        response = client.get("/health")
+
+        self.assertEqual(
+            response.headers["x-content-type-options"],
+            "nosniff",
+        )
+        self.assertEqual(response.headers["x-frame-options"], "DENY")
+        self.assertEqual(response.headers["referrer-policy"], "no-referrer")
+
+    def test_untrusted_request_id_is_replaced(self):
+        untrusted_request_id = "x" * 200
+        response = client.get(
+            "/health",
+            headers={"X-Request-ID": untrusted_request_id},
+        )
+
+        self.assertNotEqual(
+            response.headers["x-request-id"],
+            untrusted_request_id,
+        )
+        self.assertEqual(len(response.headers["x-request-id"]), 36)
+
     def test_local_frontend_is_allowed_by_cors(self):
         response = client.options(
             "/api/debug",

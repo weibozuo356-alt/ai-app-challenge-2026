@@ -12,7 +12,11 @@ import { normalizeCode, validateModifiedCode } from "./validator";
 const STORAGE_KEY = "bugmentor-learning-records";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(
+    /\/+$/,
+    "",
+  );
+const API_TIMEOUT_MS = 30000;
 
 function isValidLearningRecord(record) {
   return (
@@ -150,6 +154,11 @@ function App() {
 
   async function requestHint(level, responseText = "") {
     const previousHint = coachMessage;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      API_TIMEOUT_MS,
+    );
 
     setIsLoading(true);
     setCoachMessage(responseText ? "正在判断你的思路……" : "正在分析你的代码……");
@@ -160,6 +169,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
         body: JSON.stringify({
           code: code,
           expected_result: expectedResult,
@@ -183,12 +193,15 @@ function App() {
         setStudentResponse("");
       }
     } catch (error) {
-      if (error instanceof TypeError) {
+      if (error.name === "AbortError") {
+        setCoachMessage("AI 教练响应超时，请稍后重试。");
+      } else if (error instanceof TypeError) {
         setCoachMessage("无法连接后端，请确认后端正在运行。");
       } else {
         setCoachMessage(error.message || "请求失败，请稍后再试。");
       }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsLoading(false);
     }
   }

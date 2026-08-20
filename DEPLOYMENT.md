@@ -70,6 +70,16 @@ FRONTEND_ORIGINS=https://bugmentor.vercel.app,https://www.example.com
 
 ## 四、上线验收清单
 
+部署完成后，可以先运行不消耗 DeepSeek 额度的自动验收：
+
+```bash
+python scripts/smoke_test.py \
+  --frontend-url https://你的前端域名.vercel.app \
+  --backend-url https://你的后端域名.onrender.com
+```
+
+确认基础检查通过后，再增加 `--exercise-ai` 完成一次真实 AI 请求验收。
+
 - [ ] `/health` 返回 HTTP 200
 - [ ] Vercel 首页可以正常打开
 - [ ] IndexError、TypeError、SyntaxError 三个演示案例可以载入
@@ -81,6 +91,7 @@ FRONTEND_ORIGINS=https://bugmentor.vercel.app,https://www.example.com
 - [ ] 保存和删除历史学习记录正常
 - [ ] 手机浏览器布局可以正常使用
 - [ ] 浏览器控制台没有 CORS 错误
+- [ ] `PRIVACY.md` 中的数据说明与实际上线架构一致
 
 ## 五、故障排查
 

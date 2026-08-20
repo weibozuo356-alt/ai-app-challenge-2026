@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import time
 import uuid
 
@@ -16,6 +17,14 @@ logging.basicConfig(
     format="%(message)s",
 )
 logger = logging.getLogger("bugmentor")
+
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
 
 
 DEFAULT_FRONTEND_ORIGINS = (
@@ -36,6 +45,15 @@ def get_frontend_origins() -> list[str]:
     ]
 
 
+def get_request_id(request: Request) -> str:
+    candidate = request.headers.get("X-Request-ID", "")
+
+    if REQUEST_ID_PATTERN.fullmatch(candidate):
+        return candidate
+
+    return str(uuid.uuid4())
+
+
 app = FastAPI(
     title="BugMentor API",
     version="1.0.0",
@@ -51,7 +69,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def add_request_observability(request: Request, call_next):
-    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request_id = get_request_id(request)
     request.state.request_id = request_id
     started_at = time.perf_counter()
 
@@ -74,6 +92,11 @@ async def add_request_observability(request: Request, call_next):
 
     duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
     response.headers["X-Request-ID"] = request_id
+    for header_name, header_value in SECURITY_HEADERS.items():
+        response.headers[header_name] = header_value
+
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
     logger.info(
         json.dumps(
             {
