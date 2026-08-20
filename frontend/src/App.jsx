@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-import { normalizeCode, validateIndexError } from "./validator";
+import {
+  EMPTY_DEBUG_SESSION,
+  clearDebugSession,
+  loadDebugSession,
+  saveDebugSession,
+} from "./debugSession";
+import { DEMO_EXAMPLES, getDemoExample } from "./demoExamples";
+import { normalizeCode, validateModifiedCode } from "./validator";
 
 const STORAGE_KEY = "bugmentor-learning-records";
 
@@ -47,21 +54,29 @@ function loadLearningRecords() {
 }
 
 function App() {
-  const [code, setCode] = useState("");
-  const [originalCode, setOriginalCode] = useState("");
-  const [verifiedCode, setVerifiedCode] = useState("");
-  const [verification, setVerification] = useState({
-    status: "none",
-    message: "",
-  });
-  const [expectedResult, setExpectedResult] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [restoredSession] = useState(loadDebugSession);
+  const [code, setCode] = useState(restoredSession.code);
+  const [originalCode, setOriginalCode] = useState(
+    restoredSession.originalCode,
+  );
+  const [verifiedCode, setVerifiedCode] = useState(
+    restoredSession.verifiedCode,
+  );
+  const [verification, setVerification] = useState(
+    restoredSession.verification,
+  );
+  const [expectedResult, setExpectedResult] = useState(
+    restoredSession.expectedResult,
+  );
+  const [errorMessage, setErrorMessage] = useState(
+    restoredSession.errorMessage,
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const [hintLevel, setHintLevel] = useState(0);
-  const [isSolved, setIsSolved] = useState(false);
+  const [hintLevel, setHintLevel] = useState(restoredSession.hintLevel);
+  const [isSolved, setIsSolved] = useState(restoredSession.isSolved);
   const [studentResponse, setStudentResponse] = useState("");
   const [coachMessage, setCoachMessage] = useState(
-    "提交代码后，我会从第一级提示开始引导你。",
+    restoredSession.coachMessage,
   );
 
   const [errorType, setErrorType] = useState("");
@@ -71,6 +86,42 @@ function App() {
   const [saveMessage, setSaveMessage] = useState("");
 
   const [learningRecords, setLearningRecords] = useState(loadLearningRecords);
+  const [selectedExampleId, setSelectedExampleId] = useState(
+    DEMO_EXAMPLES[0].id,
+  );
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    try {
+      saveDebugSession({
+        code,
+        originalCode,
+        verifiedCode,
+        expectedResult,
+        errorMessage,
+        hintLevel,
+        coachMessage,
+        verification,
+        isSolved,
+      });
+    } catch {
+      // 调试会话保存失败不应阻止用户继续使用当前页面。
+    }
+  }, [
+    code,
+    originalCode,
+    verifiedCode,
+    expectedResult,
+    errorMessage,
+    hintLevel,
+    coachMessage,
+    verification,
+    isSolved,
+    isLoading,
+  ]);
 
   function handleCodeChange(nextCode) {
     setCode(nextCode);
@@ -168,7 +219,7 @@ function App() {
       return;
     }
 
-    const result = validateIndexError(originalCode, code, errorMessage);
+    const result = validateModifiedCode(originalCode, code, errorMessage);
 
     setVerifiedCode(code);
     setVerification(result);
@@ -225,10 +276,63 @@ function App() {
       return;
     }
 
-    setIsSolved(true);
     setCoachMessage(
-      "太好了！请用自己的话解释：错误为什么发生，以及下次如何避免？",
+      "很好，你已经形成了自己的判断。请修改左侧代码并点击“重新验证修改后的代码”；验证通过后会自动解锁学习复盘。",
     );
+  }
+
+  function resetDebugging() {
+    clearDebugSession();
+    setCode(EMPTY_DEBUG_SESSION.code);
+    setOriginalCode(EMPTY_DEBUG_SESSION.originalCode);
+    setVerifiedCode(EMPTY_DEBUG_SESSION.verifiedCode);
+    setExpectedResult(EMPTY_DEBUG_SESSION.expectedResult);
+    setErrorMessage(EMPTY_DEBUG_SESSION.errorMessage);
+    setHintLevel(EMPTY_DEBUG_SESSION.hintLevel);
+    setCoachMessage(EMPTY_DEBUG_SESSION.coachMessage);
+    setVerification({ ...EMPTY_DEBUG_SESSION.verification });
+    setIsSolved(EMPTY_DEBUG_SESSION.isSolved);
+    setStudentResponse("");
+    setErrorType("");
+    setKnowledgePoint("");
+    setErrorCause("");
+    setPrevention("");
+    setSaveMessage("调试会话已重置。历史学习记录不会受到影响。");
+  }
+
+  function loadSelectedExample() {
+    const example = getDemoExample(selectedExampleId);
+
+    if (!example) {
+      return;
+    }
+
+    const hasCurrentWork =
+      code.trim() !== "" || expectedResult.trim() !== "" || hintLevel > 0;
+
+    if (
+      hasCurrentWork &&
+      !window.confirm("载入案例会替换当前调试内容，是否继续？")
+    ) {
+      return;
+    }
+
+    clearDebugSession();
+    setCode(example.code);
+    setOriginalCode("");
+    setVerifiedCode("");
+    setExpectedResult(example.expectedResult);
+    setErrorMessage(example.errorMessage);
+    setHintLevel(0);
+    setCoachMessage(EMPTY_DEBUG_SESSION.coachMessage);
+    setVerification({ ...EMPTY_DEBUG_SESSION.verification });
+    setIsSolved(false);
+    setStudentResponse("");
+    setErrorType("");
+    setKnowledgePoint("");
+    setErrorCause("");
+    setPrevention("");
+    setSaveMessage("");
   }
 
   function saveLearningRecord() {
@@ -328,6 +432,24 @@ function App() {
             <option>Python</option>
           </select>
 
+          <label htmlFor="demo-example">快速演示案例</label>
+          <div className="example-loader">
+            <select
+              id="demo-example"
+              value={selectedExampleId}
+              onChange={(event) => setSelectedExampleId(event.target.value)}
+            >
+              {DEMO_EXAMPLES.map((example) => (
+                <option key={example.id} value={example.id}>
+                  {example.name}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={loadSelectedExample}>
+              载入案例
+            </button>
+          </div>
+
           <label htmlFor="code">代码</label>
           <textarea
             id="code"
@@ -367,6 +489,15 @@ function App() {
                 : "开始侦查 Bug"}
           </button>
 
+          <button
+            className="reset-debug-button"
+            type="button"
+            onClick={resetDebugging}
+            disabled={isLoading}
+          >
+            重置当前调试
+          </button>
+
           {hintLevel > 0 && (
             <button
               className="verify-button"
@@ -395,7 +526,9 @@ function App() {
               <p>{verification.message}</p>
 
               <small>
-                当前结果来自预设规则模拟，代码未在服务器执行。
+                当前结果来自预设规则模拟，代码未在服务器执行。目前支持
+                IndexError、字符串拼接类 TypeError 与缺少冒号的
+                SyntaxError。
               </small>
             </div>
           )}
@@ -438,7 +571,7 @@ function App() {
             onClick={markAsSolved}
             disabled={hintLevel === 0 || isLoading || isSolved}
           >
-            我找到问题了
+            我已定位，准备修改代码
           </button>
 
           <button

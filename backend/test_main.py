@@ -65,6 +65,57 @@ class DebugApiTests(unittest.TestCase):
             previous_hint="请观察报错信息和列表索引。",
         )
 
+    def test_health_endpoint(self):
+        response = client.get(
+            "/health",
+            headers={"X-Request-ID": "health-test-request"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "status": "ok",
+                "service": "bugmentor-api",
+            },
+        )
+        self.assertEqual(
+            response.headers["x-request-id"],
+            "health-test-request",
+        )
+
+    def test_local_frontend_is_allowed_by_cors(self):
+        response = client.options(
+            "/api/debug",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "Content-Type",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["access-control-allow-origin"],
+            "http://localhost:5173",
+        )
+
+    def test_unknown_frontend_is_rejected_by_cors(self):
+        response = client.options(
+            "/api/debug",
+            headers={
+                "Origin": "https://untrusted.example",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "Content-Type",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn(
+            "access-control-allow-origin",
+            response.headers,
+        )
+
     @patch(
         "main.generate_debug_hint",
         side_effect=RuntimeError("内部模型错误"),

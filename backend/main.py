@@ -1,18 +1,94 @@
-from fastapi import FastAPI, HTTPException
+import json
+import logging
+import os
+import time
+import uuid
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from ai_service import generate_debug_hint
 
 
-app = FastAPI()
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(message)s",
+)
+logger = logging.getLogger("bugmentor")
+
+
+DEFAULT_FRONTEND_ORIGINS = (
+    "http://localhost:5173,http://127.0.0.1:5173"
+)
+
+
+def get_frontend_origins() -> list[str]:
+    configured_origins = os.getenv(
+        "FRONTEND_ORIGINS",
+        DEFAULT_FRONTEND_ORIGINS,
+    )
+
+    return [
+        origin.strip().rstrip("/")
+        for origin in configured_origins.split(",")
+        if origin.strip()
+    ]
+
+
+app = FastAPI(
+    title="BugMentor API",
+    version="1.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=get_frontend_origins(),
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
+
+
+@app.middleware("http")
+async def add_request_observability(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request.state.request_id = request_id
+    started_at = time.perf_counter()
+
+    try:
+        response = await call_next(request)
+    except Exception as error:
+        logger.exception(
+            json.dumps(
+                {
+                    "event": "http_request_failed",
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "error_type": type(error).__name__,
+                },
+                ensure_ascii=False,
+            )
+        )
+        raise
+
+    duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        json.dumps(
+            {
+                "event": "http_request_completed",
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+            },
+            ensure_ascii=False,
+        )
+    )
+
+    return response
 
 
 class DebugRequest(BaseModel):
@@ -29,28 +105,47 @@ def read_root():
     return {"message": "BugMentor 后端运行成功"}
 
 
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "service": "bugmentor-api",
+    }
+
+
 @app.post("/api/debug")
-def debug_code(request: DebugRequest):
+def debug_code(payload: DebugRequest, request: Request):
     try:
         hint = generate_debug_hint(
-            code=request.code,
-            expected_result=request.expected_result,
-            error_message=request.error_message,
-            hint_level=request.hint_level,
-            student_response=request.student_response,
-            previous_hint=request.previous_hint,
+            code=payload.code,
+            expected_result=payload.expected_result,
+            error_message=payload.error_message,
+            hint_level=payload.hint_level,
+            student_response=payload.student_response,
+            previous_hint=payload.previous_hint,
         )
-    except Exception:
+    except Exception as error:
+        logger.exception(
+            json.dumps(
+                {
+                    "event": "ai_hint_failed",
+                    "request_id": request.state.request_id,
+                    "hint_level": payload.hint_level,
+                    "error_type": type(error).__name__,
+                },
+                ensure_ascii=False,
+            )
+        )
         raise HTTPException(
             status_code=503,
             detail="AI 教练暂时无法响应，请稍后再试。",
         )
 
     return {
-        "hint_level": request.hint_level,
+        "hint_level": payload.hint_level,
         "hint": hint,
         "interaction": (
-            "follow_up" if request.student_response.strip() else "hint"
+            "follow_up" if payload.student_response.strip() else "hint"
         ),
         "mode": "deepseek",
     }

@@ -146,6 +146,31 @@ button:disabled:hover {
   background: #5948dd;
 }
 
+.workspace .panel:first-child .reset-debug-button {
+  margin-top: 10px;
+  color: #475569;
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.workspace .panel:first-child .reset-debug-button:hover:not(:disabled) {
+  color: #b42318;
+  border-color: #f1b8b2;
+  background: #fff7f6;
+}
+
+.example-loader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.workspace .panel:first-child .example-loader button {
+  width: auto;
+  margin: 0;
+  padding-inline: 18px;
+}
+
 .hint-box {
   min-height: 210px;
   padding: 20px;
@@ -324,5 +349,13 @@ button:disabled:hover {
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .example-loader {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace .panel:first-child .example-loader button {
+    width: 100%;
   }
 }
