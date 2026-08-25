@@ -10,6 +10,7 @@ export const EMPTY_DEBUG_SESSION = {
   expectedResult: "",
   errorMessage: "",
   hintLevel: 0,
+  feedbackLevel: 0,
   coachMessage: "提交代码后，我会从第一级提示开始引导你。",
   verification: {
     status: "none",
@@ -59,6 +60,12 @@ export function sanitizeDebugSession(value) {
       value.hintLevel <= 5
         ? value.hintLevel
         : 0,
+    feedbackLevel:
+      Number.isInteger(value.feedbackLevel) &&
+      value.feedbackLevel >= 0 &&
+      value.feedbackLevel <= 4
+        ? value.feedbackLevel
+        : 0,
     coachMessage: isString(value.coachMessage)
       ? value.coachMessage
       : EMPTY_DEBUG_SESSION.coachMessage,
@@ -70,9 +77,14 @@ export function sanitizeDebugSession(value) {
 
   if (session.code.trim() === "" || session.originalCode.trim() === "") {
     session.hintLevel = 0;
+    session.feedbackLevel = 0;
     session.verifiedCode = "";
     session.verification = { ...EMPTY_DEBUG_SESSION.verification };
     session.isSolved = false;
+  }
+
+  if (session.feedbackLevel !== session.hintLevel) {
+    session.feedbackLevel = 0;
   }
 
   const verifiedCodeMatchesCurrent =

@@ -51,6 +51,15 @@ test("保存后可以完整恢复调试会话", () => {
   assert.deepEqual(loadDebugSession(storage), session);
 });
 
+test("刷新后保留当前提示等级已经获得的反馈", () => {
+  const storage = createMemoryStorage();
+  const session = createSession({ feedbackLevel: 3 });
+
+  saveDebugSession(session, storage);
+
+  assert.equal(loadDebugSession(storage).feedbackLevel, 3);
+});
+
 test("损坏的 JSON 不会阻止页面启动", () => {
   const storage = createMemoryStorage();
   storage.setItem(DEBUG_SESSION_KEY, "{invalid-json");

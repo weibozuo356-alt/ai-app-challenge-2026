@@ -7,6 +7,7 @@ import {
   saveDebugSession,
 } from "./debugSession";
 import { DEMO_EXAMPLES, getDemoExample } from "./demoExamples";
+import { canRevealAnswer, canUnlockNextHint } from "./hintProgress";
 import { normalizeCode, validateModifiedCode } from "./validator";
 
 const STORAGE_KEY = "bugmentor-learning-records";
@@ -77,6 +78,9 @@ function App() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hintLevel, setHintLevel] = useState(restoredSession.hintLevel);
+  const [feedbackLevel, setFeedbackLevel] = useState(
+    restoredSession.feedbackLevel,
+  );
   const [isSolved, setIsSolved] = useState(restoredSession.isSolved);
   const [studentResponse, setStudentResponse] = useState("");
   const [coachMessage, setCoachMessage] = useState(
@@ -107,6 +111,7 @@ function App() {
         expectedResult,
         errorMessage,
         hintLevel,
+        feedbackLevel,
         coachMessage,
         verification,
         isSolved,
@@ -121,6 +126,7 @@ function App() {
     expectedResult,
     errorMessage,
     hintLevel,
+    feedbackLevel,
     coachMessage,
     verification,
     isSolved,
@@ -188,6 +194,7 @@ function App() {
 
       setHintLevel(data.hint_level);
       setCoachMessage(data.hint);
+      setFeedbackLevel(responseText ? data.hint_level : 0);
 
       if (responseText) {
         setStudentResponse("");
@@ -219,6 +226,7 @@ function App() {
     });
     setIsSolved(false);
     setStudentResponse("");
+    setFeedbackLevel(0);
     setSaveMessage("");
 
     await requestHint(1);
@@ -265,19 +273,22 @@ function App() {
       return;
     }
 
-    if (hintLevel >= 4) {
-      setCoachMessage(
-        "你已经看完四级引导提示，请先尝试修改代码，实在无法解决时再查看答案。",
-      );
+    if (!canUnlockNextHint({ hintLevel, feedbackLevel })) {
+      setCoachMessage("请先填写并提交本级的“我的判断”，查看反馈后才能获取下一级提示。");
       return;
     }
 
-    const nextLevel = hintLevel === 0 ? 1 : hintLevel + 1;
+    const nextLevel = hintLevel + 1;
     await requestHint(nextLevel);
   }
 
   async function showAnswer() {
     if (!hasCode()) {
+      return;
+    }
+
+    if (!canRevealAnswer({ hintLevel, feedbackLevel })) {
+      setCoachMessage("完整答案只在完成第四级判断并查看反馈后解锁。");
       return;
     }
 
@@ -302,6 +313,7 @@ function App() {
     setExpectedResult(EMPTY_DEBUG_SESSION.expectedResult);
     setErrorMessage(EMPTY_DEBUG_SESSION.errorMessage);
     setHintLevel(EMPTY_DEBUG_SESSION.hintLevel);
+    setFeedbackLevel(EMPTY_DEBUG_SESSION.feedbackLevel);
     setCoachMessage(EMPTY_DEBUG_SESSION.coachMessage);
     setVerification({ ...EMPTY_DEBUG_SESSION.verification });
     setIsSolved(EMPTY_DEBUG_SESSION.isSolved);
@@ -337,6 +349,7 @@ function App() {
     setExpectedResult(example.expectedResult);
     setErrorMessage(example.errorMessage);
     setHintLevel(0);
+    setFeedbackLevel(0);
     setCoachMessage(EMPTY_DEBUG_SESSION.coachMessage);
     setVerification({ ...EMPTY_DEBUG_SESSION.verification });
     setIsSolved(false);
@@ -573,7 +586,12 @@ function App() {
             <button
               type="button"
               onClick={submitStudentResponse}
-              disabled={hintLevel === 0 || isLoading || isSolved}
+              disabled={
+                hintLevel === 0 ||
+                studentResponse.trim() === "" ||
+                isLoading ||
+                isSolved
+              }
             >
               提交我的判断
             </button>
@@ -590,7 +608,11 @@ function App() {
           <button
             type="button"
             onClick={showNextHint}
-            disabled={hintLevel === 0 || isLoading || isSolved}
+            disabled={
+              !canUnlockNextHint({ hintLevel, feedbackLevel }) ||
+              isLoading ||
+              isSolved
+            }
           >
             再给我一个提示
           </button>
@@ -598,7 +620,11 @@ function App() {
           <button
             type="button"
             onClick={showAnswer}
-            disabled={hintLevel === 0 || isLoading || isSolved}
+            disabled={
+              !canRevealAnswer({ hintLevel, feedbackLevel }) ||
+              isLoading ||
+              isSolved
+            }
           >
             实在不会，查看答案
           </button>
