@@ -9,6 +9,8 @@
 - `BugMentor-中兴赛道-合规说明.docx` / `.pdf`
 - `acceptance-report.md`：发布后线上验收记录与证据索引
 - `evidence/`：线上关键流程截图
+- `../live-demo-guide.md`：6 分钟现场演示与离线兜底方案
+- `../defense-qa.md`：答辩高频问题及建议回答
 
 ## 线上资源
 

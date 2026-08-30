@@ -53,6 +53,7 @@
 }
 
 .panel {
+  min-width: 0;
   padding: 26px;
   border: 1px solid #e3e8f0;
   border-radius: 18px;
@@ -457,6 +458,12 @@ button:disabled:hover {
 
   .header {
     align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .header > span {
+    align-self: flex-start;
   }
 
   .header h1 {
@@ -464,7 +471,7 @@ button:disabled:hover {
   }
 
   .workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .example-loader {
@@ -496,5 +503,15 @@ button:disabled:hover {
 
   .workspace .panel:first-child .example-loader button {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .panel {
+    padding: 20px;
+  }
+
+  .header h1 {
+    font-size: 32px;
   }
 }
