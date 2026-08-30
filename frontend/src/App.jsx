@@ -8,6 +8,12 @@ import {
 } from "./debugSession";
 import { DEMO_EXAMPLES, getDemoExample } from "./demoExamples";
 import { canRevealAnswer, canUnlockNextHint } from "./hintProgress";
+import {
+  buildReviewPlan,
+  createLearningExport,
+  getKnowledgeCard,
+  getRecommendedPractice,
+} from "./learningSupport";
 import { normalizeCode, validateModifiedCode } from "./validator";
 
 const STORAGE_KEY = "bugmentor-learning-records";
@@ -97,6 +103,9 @@ function App() {
   const [selectedExampleId, setSelectedExampleId] = useState(
     DEMO_EXAMPLES[0].id,
   );
+  const knowledgeCard = getKnowledgeCard(errorMessage);
+  const reviewPlan = buildReviewPlan(learningRecords);
+  const recommendedPractice = getRecommendedPractice(reviewPlan);
 
   useEffect(() => {
     if (isLoading) {
@@ -228,6 +237,10 @@ function App() {
     setStudentResponse("");
     setFeedbackLevel(0);
     setSaveMessage("");
+    setErrorType("");
+    setKnowledgePoint("");
+    setErrorCause("");
+    setPrevention("");
 
     await requestHint(1);
   }
@@ -246,6 +259,14 @@ function App() {
     setVerification(result);
     setIsSolved(result.status === "passed");
     setSaveMessage("");
+
+    if (result.status === "passed") {
+      const card = getKnowledgeCard(errorMessage);
+      if (card) {
+        setErrorType(card.errorType);
+        setKnowledgePoint(card.knowledgePoint);
+      }
+    }
   }
 
   async function submitStudentResponse() {
@@ -325,6 +346,26 @@ function App() {
     setSaveMessage("调试会话已重置。历史学习记录不会受到影响。");
   }
 
+  function applyExercise(exercise) {
+    clearDebugSession();
+    setCode(exercise.code);
+    setOriginalCode("");
+    setVerifiedCode("");
+    setExpectedResult(exercise.expectedResult);
+    setErrorMessage(exercise.errorMessage);
+    setHintLevel(0);
+    setFeedbackLevel(0);
+    setCoachMessage(EMPTY_DEBUG_SESSION.coachMessage);
+    setVerification({ ...EMPTY_DEBUG_SESSION.verification });
+    setIsSolved(false);
+    setStudentResponse("");
+    setErrorType("");
+    setKnowledgePoint("");
+    setErrorCause("");
+    setPrevention("");
+    setSaveMessage("");
+  }
+
   function loadSelectedExample() {
     const example = getDemoExample(selectedExampleId);
 
@@ -342,23 +383,26 @@ function App() {
       return;
     }
 
-    clearDebugSession();
-    setCode(example.code);
-    setOriginalCode("");
-    setVerifiedCode("");
-    setExpectedResult(example.expectedResult);
-    setErrorMessage(example.errorMessage);
-    setHintLevel(0);
-    setFeedbackLevel(0);
-    setCoachMessage(EMPTY_DEBUG_SESSION.coachMessage);
-    setVerification({ ...EMPTY_DEBUG_SESSION.verification });
-    setIsSolved(false);
-    setStudentResponse("");
-    setErrorType("");
-    setKnowledgePoint("");
-    setErrorCause("");
-    setPrevention("");
-    setSaveMessage("");
+    applyExercise(example);
+  }
+
+  function loadRecommendedPractice() {
+    if (!recommendedPractice) {
+      return;
+    }
+
+    const hasCurrentWork =
+      code.trim() !== "" || expectedResult.trim() !== "" || hintLevel > 0;
+
+    if (
+      hasCurrentWork &&
+      !window.confirm("载入迁移练习会替换当前调试内容，是否继续？")
+    ) {
+      return;
+    }
+
+    applyExercise(recommendedPractice);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function saveLearningRecord() {
@@ -437,6 +481,30 @@ function App() {
     }
   }
 
+  function exportLearningRecords() {
+    if (learningRecords.length === 0) {
+      setSaveMessage("当前没有可以导出的学习记录。");
+      return;
+    }
+
+    const payload = createLearningExport(learningRecords);
+    const fileContent = JSON.stringify(payload, null, 2);
+    const blob = new Blob([fileContent], {
+      type: "application/json;charset=utf-8",
+    });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+
+    link.href = downloadUrl;
+    link.download = `bugmentor-learning-records-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+    setSaveMessage(`已导出 ${learningRecords.length} 条学习记录。`);
+  }
+
   return (
     <main className="app">
       <header className="header">
@@ -446,7 +514,7 @@ function App() {
           <span>不会直接告诉你答案的 AI Debug 教练</span>
         </div>
 
-        <span>Python MVP</span>
+        <span>专业课助教版</span>
       </header>
 
       <section className="workspace">
@@ -480,6 +548,7 @@ function App() {
           <textarea
             id="code"
             rows="12"
+            maxLength="10000"
             placeholder="在这里粘贴你的 Python 代码……"
             value={code}
             onChange={(event) => handleCodeChange(event.target.value)}
@@ -489,6 +558,7 @@ function App() {
           <textarea
             id="expected"
             rows="3"
+            maxLength="2000"
             placeholder="你希望代码产生什么结果？"
             value={expectedResult}
             onChange={(event) => setExpectedResult(event.target.value)}
@@ -498,6 +568,7 @@ function App() {
           <textarea
             id="error"
             rows="3"
+            maxLength="5000"
             placeholder="粘贴报错信息；没有报错可以留空"
             value={errorMessage}
             onChange={(event) => setErrorMessage(event.target.value)}
@@ -538,6 +609,7 @@ function App() {
           {verification.message && (
             <div
               className={`verification-card verification-${verification.status}`}
+              aria-live="polite"
             >
               <strong>
                 {verification.status === "passed"
@@ -563,7 +635,7 @@ function App() {
         <article className="panel">
           <h2>AI Debug 教练</h2>
 
-          <div className="hint-box">
+          <div className="hint-box" aria-live="polite">
             <p>{coachMessage}</p>
           </div>
 
@@ -571,6 +643,22 @@ function App() {
             当前提示等级：
             {hintLevel === 0 ? "尚未开始" : `第 ${hintLevel} 级`}
           </p>
+
+          {knowledgeCard && (hintLevel >= 3 || isSolved) && (
+            <aside className="knowledge-card" aria-labelledby="knowledge-title">
+              <p className="eyebrow">课程知识依据</p>
+              <h3 id="knowledge-title">{knowledgeCard.title}</h3>
+              <p><strong>规则：</strong>{knowledgeCard.rule}</p>
+              <p><strong>核验方法：</strong>{knowledgeCard.verification}</p>
+              <a
+                href={knowledgeCard.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                查看依据：{knowledgeCard.sourceTitle}
+              </a>
+            </aside>
+          )}
 
           <div className="student-response-box">
             <label htmlFor="student-response">我的判断</label>
@@ -638,6 +726,7 @@ function App() {
         <input
           id="error-type"
           type="text"
+          maxLength="100"
           placeholder="例如：IndexError"
           value={errorType}
           onChange={(event) => setErrorType(event.target.value)}
@@ -648,6 +737,7 @@ function App() {
         <input
           id="knowledge-point"
           type="text"
+          maxLength="300"
           placeholder="例如：列表索引从 0 开始"
           value={knowledgePoint}
           onChange={(event) => setKnowledgePoint(event.target.value)}
@@ -658,6 +748,7 @@ function App() {
         <textarea
           id="error-cause"
           rows="3"
+          maxLength="2000"
           placeholder="请用自己的话解释错误为什么发生"
           value={errorCause}
           onChange={(event) => setErrorCause(event.target.value)}
@@ -668,6 +759,7 @@ function App() {
         <textarea
           id="prevention"
           rows="3"
+          maxLength="2000"
           placeholder="记录一条具体的改进方法"
           value={prevention}
           onChange={(event) => setPrevention(event.target.value)}
@@ -678,21 +770,60 @@ function App() {
           保存学习记录
         </button>
         <p>已保存学习记录：{learningRecords.length} 条</p>
-        {saveMessage && <p>{saveMessage}</p>}
+        {saveMessage && <p aria-live="polite">{saveMessage}</p>}
+      </section>
+
+      <section className="panel learning-plan-panel">
+        <div className="learning-plan-header">
+          <div>
+            <p className="eyebrow">PERSONALIZED REVIEW</p>
+            <h2>个性化复习建议</h2>
+          </div>
+          <span>{reviewPlan.totalRecords} 条记录</span>
+        </div>
+
+        <h3>{reviewPlan.headline}</h3>
+        <p>{reviewPlan.summary}</p>
+        <ol>
+          {reviewPlan.steps.map((step) => <li key={step}>{step}</li>)}
+        </ol>
+
+        {recommendedPractice && (
+          <article className="practice-card">
+            <div>
+              <p className="eyebrow">RECOMMENDED PRACTICE</p>
+              <h3>{recommendedPractice.title}</h3>
+              <p>{recommendedPractice.goal}</p>
+            </div>
+            <button type="button" onClick={loadRecommendedPractice}>
+              载入迁移练习
+            </button>
+          </article>
+        )}
       </section>
 
       <section className="panel history-panel">
         <div className="history-header">
           <h2>历史学习记录</h2>
 
-          <button
-            className="clear-records-button"
-            type="button"
-            onClick={clearLearningRecords}
-            disabled={learningRecords.length === 0}
-          >
-            清空全部记录
-          </button>
+          <div className="history-actions">
+            <button
+              className="export-records-button"
+              type="button"
+              onClick={exportLearningRecords}
+              disabled={learningRecords.length === 0}
+            >
+              导出 JSON
+            </button>
+            <button
+              className="clear-records-button"
+              type="button"
+              onClick={clearLearningRecords}
+              disabled={learningRecords.length === 0}
+            >
+              清空全部记录
+            </button>
+          </div>
         </div>
 
         {learningRecords.length === 0 ? (

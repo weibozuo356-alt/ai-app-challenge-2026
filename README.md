@@ -1,7 +1,7 @@
 # BugMentor
 
 [![CI](https://github.com/weibozuo356-alt/ai-app-challenge-2026/actions/workflows/ci.yml/badge.svg)](https://github.com/weibozuo356-alt/ai-app-challenge-2026/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.1.0--beta-244584)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.0--beta-244584)](CHANGELOG.md)
 
 不会直接告诉你答案的 AI Debug 教练。
 
@@ -24,7 +24,9 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 5. 用户可以逐级获取更多提示，并修改代码
 6. 系统使用确定性规则模拟验证修改后的代码
 7. 验证成功后进入复盘；代码再次修改后旧结论失效
-8. 系统记录错误原因、知识点和改进方法
+8. 第三级起展示可核验的课程知识依据与官方资料链接
+9. 系统记录错误原因、知识点和改进方法
+10. 根据历史高频错误生成复习计划和迁移练习
 
 ## 当前已实现
 
@@ -76,7 +78,12 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 - [x] 增加 GitHub Actions 前后端质量门禁
 - [x] 增加生产安全响应头、AI 请求超时与 React 错误兜底页
 - [x] 增加隐私说明、安全说明、更新日志与线上自动验收脚本
-- [ ] 部署在线演示版本
+- [x] 部署在线演示版本
+- [x] 为三类核心错误增加 Python 官方文档知识依据卡
+- [x] 根据历史记录生成高频错误复习计划
+- [x] 根据复习重点推荐可载入的新迁移练习
+- [x] 支持将最近 20 条学习记录导出为结构化 JSON
+- [x] 使用 35 项前端自动化测试保护新增学习支持功能
 
 ## 提示等级
 
@@ -167,6 +174,10 @@ npm run build
 
 ## 在线部署
 
+- 在线体验：https://ai-app-challenge-2026.vercel.app/
+- 后端服务：https://bugmentor-api.onrender.com
+- API 文档：https://bugmentor-api.onrender.com/docs
+
 项目已经包含：
 
 - 根目录 `render.yaml`：创建 Render FastAPI Web Service
@@ -215,7 +226,11 @@ BugMentor 使用五级提示控制答案揭示的程度：前四级逐步引导�
 
 用户完成调试后，可以填写错误类型、知识点、错误原因和避免方法。学习记录保存在当前浏览器的 `localStorage` 中，刷新页面后仍然存在，最多保留最近 20 条。每条记录具有唯一 ID，支持单条删除，也可以在二次确认后清空全部记录。当前版本尚未实现账号系统和跨设备同步。
 
-前端包含 27 项自动化测试，保护 IndexError、TypeError、SyntaxError、调试会话恢复、演示案例数据、损坏数据降级和重置清理等场景。后端包含 12 项自动化测试，覆盖接口正常响应、AI 调用成功、AI 服务异常、空代码、非法提示等级、学生回答转发、超长回答拒绝、健康检查、安全响应头、请求 ID 和 CORS 白名单。后端测试使用 Mock 替代真实模型，不消耗 DeepSeek 调用额度。
+从第三级提示开始，页面会展示与当前错误匹配的“课程知识依据卡”，包含规则、核验方法和 Python 官方文档链接。该卡片由本地预设元数据生成，不把官方资料抓取或复制到项目中，也不会在前两级提前泄露具体修复答案。
+
+系统会对本地学习记录中的错误类型进行统计，选择出现次数最多的类型生成三阶段复习建议，并推荐一条新的预设迁移练习。推荐结果只依赖当前浏览器中的记录，不建立用户画像、不上传历史记录。用户可以把全部学习记录导出为带版本号和导出时间的结构化 JSON 文件。
+
+前端包含 35 项自动化测试，保护 IndexError、TypeError、SyntaxError、提示逐级解锁、调试会话恢复、演示案例数据、知识依据、复习计划、迁移练习、JSON 导出数据结构、损坏数据降级和重置清理等场景。后端包含 12 项自动化测试，覆盖接口正常响应、AI 调用成功、AI 服务异常、空代码、非法提示等级、学生回答转发、超长回答拒绝、健康检查、安全响应头、请求 ID 和 CORS 白名单。后端测试使用 Mock 替代真实模型，不消耗 DeepSeek 调用额度。
 
 ## 产品原则
 
@@ -232,7 +247,12 @@ AI 的目标不是替用户修好代码，而是帮助用户学会自己修复�
 - [Day 7—8：完成调试会话恢复与 TypeError 验证闭环](docs/dev-log/2026-08-20.md)
 - [Day 9：扩展 SyntaxError 验证与比赛演示案例](docs/dev-log/2026-08-20-day-9.md)
 - [Day 10：完成线上部署准备与可观测性](docs/dev-log/2026-08-20-deployment.md)
+- [中兴赛道增强：知识依据、迁移练习与材料定稿](docs/dev-log/2026-08-30-zte.md)
 
 ## 双版本说明
 
 BugMentor 当前同时维护秒悟平台原型与 GitHub 主项目。两者共享同一产品目标，但技术实现和当前能力不同。开发与比赛准备时以[双版本差异与同步计划](docs/meoo-github-gap.md)为准，避免把某一版本已实现的功能误认为另一版本也已同步。
+
+## 中兴赛道提交材料
+
+中兴“专业课助教智能体”赛道以 GitHub 主项目和在线演示为准。技术文档、测试用例、合规说明、演示脚本与提交检查表见 [`competition/zte`](competition/zte/README.md)。

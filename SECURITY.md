@@ -17,6 +17,9 @@
 - `Cache-Control: no-store` 保护 AI 接口响应
 - CSP、禁止 iframe、MIME 嗅探防护、权限策略和 Referrer Policy
 - 前端 React 自动转义，不使用 `dangerouslySetInnerHTML`
+- 前端输入设置与 API 一致的长度上限，异常超长内容由前后端共同拦截
+- 学习历史统计和 JSON 导出完全在浏览器内完成，不上传记录
+- 课程知识链接使用固定的 Python 官方文档 URL，不拼接用户输入
 - npm 生产依赖审计、Python 依赖一致性检查和 GitHub Actions 质量门禁
 - Dependabot 每周检查 npm 与 pip 更新
 
