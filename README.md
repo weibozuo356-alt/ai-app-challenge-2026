@@ -15,6 +15,15 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 
 正在学习 Python、能够编写简单代码，但缺乏独立 Debug 能力的大学生和编程初学者。
 
+## 参赛信息
+
+- 参赛赛道：中兴赛道
+- 参赛命题：命题二——专业课助教智能体
+- 作品名称：BugMentor
+- 参赛形式：个人参赛
+- 在线体验：https://ai-app-challenge-2026.vercel.app/
+- 开源仓库：https://github.com/weibozuo356-alt/ai-app-challenge-2026
+
 ## 核心流程
 
 1. 用户提交代码、预期结果和报错信息
@@ -107,6 +116,32 @@ BugMentor 不会立即公布答案，而是通过逐级提示，引导用户自�
 - OpenAI Python SDK
 - python-dotenv
 
+## 运行环境
+
+| 类别 | 要求或当前配置 |
+| --- | --- |
+| 开发系统 | Windows 11；部署端为 Vercel 与 Render 托管环境 |
+| 前端运行时 | Node.js 22 或更高版本、npm、现代 Chrome/Edge 浏览器 |
+| 后端运行时 | Python 3.11 或更高版本 |
+| 数据存储 | 浏览器 `localStorage`，无需初始化数据库或中间件 |
+| 外部服务 | DeepSeek API；动态提示需要网络连接，规则验证与历史记录可在浏览器本地工作 |
+
+## 项目目录
+
+```text
+ai-app-challenge-2026/
+├─ frontend/                 React + Vite 前端
+│  ├─ src/                   页面、验证器、提示与存储逻辑
+│  └─ vercel.json            Vercel 部署配置
+├─ backend/                  FastAPI 后端与接口测试
+├─ competition/zte/          中兴赛道命题二提交材料
+├─ docs/                     开发日志与版本差异说明
+├─ scripts/                  在线验收与材料生成脚本
+├─ .github/workflows/ci.yml  持续集成质量门禁
+├─ render.yaml               Render 后端部署配置
+└─ README.md                 项目说明
+```
+
 ## 本地运行
 
 ### 启动后端
@@ -165,6 +200,19 @@ npm run dev
 
 根据终端提示，在浏览器中打开本地网址。
 
+## 配置说明
+
+| 变量 | 位置 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `DEEPSEEK_API_KEY` | 后端 | 是 | DeepSeek 密钥，只能保存在本地或部署平台的密钥环境变量中 |
+| `DEEPSEEK_BASE_URL` | 后端 | 否 | 默认 `https://api.deepseek.com` |
+| `DEEPSEEK_MODEL` | 后端 | 否 | 默认使用项目示例配置中的模型名 |
+| `FRONTEND_ORIGINS` | 后端 | 生产必填 | 允许访问 API 的前端来源，多个来源按项目示例格式配置 |
+| `LOG_LEVEL` | 后端 | 否 | 后端日志级别；日志不会记录用户代码或密钥 |
+| `VITE_API_BASE_URL` | 前端 | 是 | FastAPI 服务地址，本地默认 `http://127.0.0.1:8000` |
+
+本项目不使用数据库，不需要执行数据表初始化。首次打开页面时，浏览器会按需创建本地学习记录；损坏或旧版本数据会安全降级。
+
 ## 正式构建
 
 ```bash
@@ -190,6 +238,15 @@ npm run build
 
 数据处理方式见[隐私说明](PRIVACY.md)，安全边界和已知限制见[安全说明](SECURITY.md)，版本变化见[更新日志](CHANGELOG.md)。
 
+## 异常处理与兜底机制
+
+- 输入为空、过长或提示等级非法时，前后端会拒绝请求并给出可读提示。
+- DeepSeek 超时、额度不足或服务异常时，页面保留当前输入和进度，并提示稍后重试；不会把异常伪装成正确答案。
+- 后端不可达时，前端明确区分网络故障与 AI 服务错误。
+- 确定性验证器只判断已覆盖的 IndexError、TypeError 和 SyntaxError 场景；无法确认时返回“暂时无法判断”，不会误判通过。
+- 本地会话损坏时自动回退到安全初始状态；已保存的有效学习记录最多保留 20 条。
+- Render 免费实例冷启动时首次请求可能较慢，可先访问后端根地址唤醒服务再重试。
+
 ## 自动化测试
 
 运行前端验证器测试：
@@ -205,6 +262,24 @@ npm test
 cd backend
 .venv/Scripts/python.exe -m unittest test_main -v
 ```
+
+## 常见问题
+
+### 为什么前四级不直接显示答案？
+
+BugMentor 的目标是训练调试思路。前四级只逐步缩小范围，第五级才给出完整原因与修改建议。
+
+### 为什么修改代码后复盘又被锁定？
+
+复盘只对最近一次验证通过的代码开放。代码再次变化时旧结论会失效，需要重新验证，防止错误代码沿用成功状态。
+
+### 为什么有时显示“暂时无法判断”？
+
+浏览器中的规则验证不会执行任意 Python，只覆盖三个明确场景。超出规则边界时系统选择保守提示，并建议继续使用五级引导或在安全环境中运行代码。
+
+### 为什么在线第一次打开或提交较慢？
+
+Render 托管后端可能处于休眠状态。等待其唤醒后再次提交即可，当前编辑内容不会因此丢失。
 
 ## 当前说明
 
@@ -236,6 +311,25 @@ BugMentor 使用五级提示控制答案揭示的程度：前四级逐步引导�
 
 AI 的目标不是替用户修好代码，而是帮助用户学会自己修复代码。
 
+## 开源依赖与致谢
+
+| 项目 | 用途 | 许可证 |
+| --- | --- | --- |
+| [React](https://github.com/facebook/react) | 前端界面 | MIT |
+| [Vite](https://github.com/vitejs/vite) | 前端开发与构建 | MIT |
+| [FastAPI](https://github.com/fastapi/fastapi) | 后端 API | MIT |
+| [Pydantic](https://github.com/pydantic/pydantic) | 请求数据校验 | MIT |
+| [OpenAI Python SDK](https://github.com/openai/openai-python) | OpenAI 兼容接口客户端 | Apache-2.0 |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | 本地环境变量加载 | BSD-3-Clause |
+
+动态提示由 [DeepSeek API](https://platform.deepseek.com/) 提供。第三方服务和依赖分别遵循其服务条款与开源许可证；本仓库不包含第三方模型权重。
+
+## 版本记录
+
+| 版本 | 日期 | 主要内容 |
+| --- | --- | --- |
+| 0.2.0-beta | 2026-09-05 | 完成三类错误验证、五级引导、知识依据、学习复盘、迁移练习、线上部署与中兴命题二材料定稿 |
+
 ## 开发日志
 
 - [Day 1：完成产品原型与分级提示流程](docs/dev-log/2026-08-11.md)
@@ -255,4 +349,4 @@ BugMentor 当前同时维护秒悟平台原型与 GitHub 主项目。两者共�
 
 ## 中兴赛道提交材料
 
-中兴“专业课助教智能体”赛道以 GitHub 主项目和在线演示为准。技术文档、测试用例、合规说明、演示脚本与提交检查表见 [`competition/zte`](competition/zte/README.md)。
+中兴赛道命题二“专业课助教智能体”以 GitHub 主项目和在线演示为准。技术报告、评测用例、合规说明、演示脚本与提交检查表见 [`competition/zte`](competition/zte/README.md)。

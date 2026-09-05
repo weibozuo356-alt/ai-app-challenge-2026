@@ -37,7 +37,7 @@ const documents = [
   {
     source: "technical-document.md",
     output: "BugMentor-中兴赛道-技术文档.docx",
-    label: "技术文档",
+    label: "技术报告",
   },
   {
     source: "test-cases.md",
@@ -192,7 +192,7 @@ function cover(label) {
       spacing: { after: 180 },
     }),
     new Paragraph({
-      children: [textRun(`中兴赛道 · ${label}`, { bold: true, color: BLUE, size: 34 })],
+      children: [textRun(`中兴赛道命题二 · ${label}`, { bold: true, color: BLUE, size: 34 })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 520 },
     }),
@@ -204,7 +204,7 @@ function cover(label) {
     new Paragraph({ children: [textRun("负责人：左伟博", { size: 22 })], alignment: AlignmentType.CENTER }),
     new Paragraph({ children: [textRun("学校：南京理工大学", { size: 22 })], alignment: AlignmentType.CENTER }),
     new Paragraph({ children: [textRun("团队：BugMentor（个人参赛）", { size: 22 })], alignment: AlignmentType.CENTER }),
-    new Paragraph({ children: [textRun("版本：1.0 · 2026-08-30", { size: 22 })], alignment: AlignmentType.CENTER }),
+    new Paragraph({ children: [textRun("版本：1.1 · 2026-09-05", { size: 22 })], alignment: AlignmentType.CENTER }),
     new Paragraph({ children: [textRun("提交版", { bold: true, color: NAVY, size: 22 })], alignment: AlignmentType.CENTER, pageBreakBefore: false }),
     new Paragraph({ children: [new TextRun({ break: 1 })], pageBreakBefore: true }),
   ];
@@ -303,7 +303,7 @@ function makeDocument(markdown, label) {
   return new Document({
     creator: "BugMentor",
     title: `BugMentor 中兴赛道 ${label}`,
-    subject: "专业课助教智能体参赛材料",
+    subject: "中兴赛道命题二专业课助教智能体参赛材料",
     description: "BugMentor 中兴赛道正式提交材料",
     keywords: "BugMentor, Python, 调试学习, 专业课助教智能体",
     numbering: {
